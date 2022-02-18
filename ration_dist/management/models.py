@@ -4,8 +4,6 @@ from turtle import color
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-
-
 # Create your models here.
 
 class RationStore(models.Model):
@@ -27,15 +25,22 @@ class RationStore(models.Model):
     no_of_blue_cards = models.PositiveIntegerField(default=0, null=False) #auto
     no_of_white_cards = models.PositiveIntegerField(default=0, null=False) #auto
     sa= models.ManyToManyField('Granary', through='StockAcquisition')
+
+class Quota(models.Model):
+    color = models.CharField(max_length=10, primary_key=True, unique=True, null=False, default="----------")
+    # category = models.CharField(max_length=10, primary_key=True, unique=True, null=False, default="----------") apl, bpl etc
+    monthly_income_cap = models.DecimalField(null=False, decimal_places=2, max_digits= 10, default=0.00)
+    Quota_sugar_in_kg = models.PositiveBigIntegerField(default=0, null=False)
+    Quota_rice_in_kg = models.PositiveBigIntegerField(default=0, null=False)
+    Quota_wheat_in_kg = models.PositiveBigIntegerField(default=0, null=False)
+    Quota_kerosine_in_l = models.PositiveBigIntegerField(default=0, null=False)
+    Price_sugar_in_kg = models.PositiveBigIntegerField(default=0, null=False)
+    Price_rice_in_kg = models.PositiveBigIntegerField(default=0, null=False)
+    Price_wheat_in_kg = models.PositiveBigIntegerField(default=0, null=False)
+    Price_kerosine_in_l = models.PositiveBigIntegerField(default=0, null=False)
     
     
 class RationCard(models.Model):
-    PINK = 1
-    WHITE = 2
-    BLUE = 3
-    YELLOW = 4
-    COLOR_CHOICES = [(PINK, 'Pink'), (WHITE, 'White'), (BLUE, 'Blue'), (YELLOW, 'Yellow')]
-    color_id = models.IntegerField(choices=COLOR_CHOICES, default=WHITE)
     card_no = models.CharField(max_length=10, primary_key=True, unique=True, null=False, default="0000000000")
     taluk_no = models.PositiveIntegerField( default=1,
         validators=[
@@ -50,6 +55,7 @@ class RationCard(models.Model):
             MinValueValidator(1)
         ], null=False)
     store_id = models.ForeignKey(RationStore,on_delete=models.CASCADE)
+    color= models.ForeignKey(Quota,on_delete=models.CASCADE)
     monthly_income = models.DecimalField(null=False, default=0.00, decimal_places=2, max_digits= 10)
 
 class Dependent(models.Model):
@@ -64,9 +70,6 @@ class Provision(models.Model):
     sugar_purchased_in_kg = models.DecimalField(null=True, decimal_places=2, max_digits= 4)
     wheat_purchased_in_kg = models.DecimalField(null=True, decimal_places=2, max_digits= 4)
     kerosine_purchased_in_l = models.DecimalField(null=True, decimal_places=2, max_digits= 4)
-
-class Quota(models.Model):
-    pass
 
 class Granary(models.Model):
     granary_id = models.AutoField(primary_key=True,unique= True, null = False)
