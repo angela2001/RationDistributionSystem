@@ -1,18 +1,17 @@
-from email.policy import default
-from pyexpat import model
-from turtle import color
 from django.db import IntegrityError, models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.views import View
 from django.contrib import admin
 import random
-import string
+#   import string
 from django.utils.crypto import get_random_string
+
+
 
 # Create your models here.
 
 class RationStore(models.Model):
-    store_id = models.CharField(max_length=10, primary_key=True, unique=True, null=False, default="0000000000")
+    store_id = models.CharField(max_length=10, primary_key=True, unique=True, null=False, default="0000000000", editable=False)
     owner_name = models.CharField(max_length=20, null=False, default="----------")
     taluk_no = models.PositiveIntegerField( default=1,
         validators=[
@@ -30,6 +29,20 @@ class RationStore(models.Model):
     no_of_blue_cards = models.PositiveIntegerField(default=0, null=False) #auto
     no_of_white_cards = models.PositiveIntegerField(default=0, null=False) #auto
     sa= models.ManyToManyField('Granary', through='StockAcquisition')
+    
+    def create_new_sid(self):
+      sid = (random.randint(1000000000, 9999999999))
+      return (sid)
+    
+    def save(self):
+        self.store_id= self.create_new_sid()
+        try:
+            super().save()
+        except IntegrityError:
+            self.save()  
+
+class RationStoreAdmin(admin.ModelAdmin):
+    readonly_fields=('store_id',)
 
 class Quota(models.Model):
     color = models.CharField(max_length=10, primary_key=True, unique=True, null=False, default="----------")
@@ -53,8 +66,8 @@ class RationCard(models.Model):
             MaxValueValidator(78),
             MinValueValidator(1)
         ], null=False, editable=False)
-    no_of_adults = models.PositiveIntegerField(default=1, null=False)
-    no_of_children = models.PositiveIntegerField(default=0, null=False) #auto no of members = adults + children
+    # no_of_adults = models.PositiveIntegerField(default=1, null=False)
+    # no_of_children = models.PositiveIntegerField(default=0, null=False) #auto no of members = adults + children
     ward_no = models.PositiveIntegerField( default=1,
         validators=[
             MaxValueValidator(2100),
@@ -64,10 +77,10 @@ class RationCard(models.Model):
     eligible_for_AAY= models.BooleanField(help_text="Landless laborers, marginal farmers, artisans, crafts men, widows, sick persons, illiterate, disabled adults with no means of subsistence.", default=False, null=False)
     color= models.ForeignKey(Quota,on_delete=models.CASCADE, editable=False, null=False)
     annual_income = models.DecimalField(null=False, default=0.00, decimal_places=2, max_digits= 10)
-    no_of_dependants= models.IntegerField(default=0, editable=False)
-    @property
-    def _no_of_dependants(self,):
-        return self.no_of_adults+ self.no_of_children
+    no_of_dependants= models.IntegerField( editable=False)
+    # @property
+    # def _no_of_dependants(self,):
+    #     return self.no_of_adults+ self.no_of_children
     
     @property
     def _taluk_no(self,):
@@ -93,7 +106,7 @@ class RationCard(models.Model):
 
     def save(self,):
         self.card_no= self.create_new_ref_number()
-        self.no_of_dependants= self._no_of_dependants
+        #self.no_of_dependants= self._no_of_dependants
         self.taluk_no = self._taluk_no
         self.ward_no= self._ward_no
         if self.eligible_for_AAY :
@@ -114,9 +127,14 @@ class RationCardAdmin(admin.ModelAdmin):
     readonly_fields=('no_of_dependants','taluk_no','ward_no','color','card_no')
     
 class Dependent(models.Model):
-    card_no = models.ForeignKey(RationCard,on_delete=models.CASCADE)
-    aadhar_card_no = models.CharField(max_length=12, unique=True, null=False, default="000000000000")
+    #d_id= models.IntegerField(primary_key=True, unique=True, null=False)
+    card = models.ForeignKey(RationCard,on_delete=models.CASCADE)
+    aadhar_card_no = models.CharField(primary_key=True, max_length=12, unique=True, null=False, default="000000000000")
     name_of_dependent = models.CharField(max_length=20, null=False, default="----------")
+    # def save(self,):
+    #     self.card.no_of_dependants +=1
+    #     self.card.save()
+
 
 class Provision(models.Model):
     card_no = models.ForeignKey(RationCard,on_delete=models.CASCADE)
@@ -127,13 +145,27 @@ class Provision(models.Model):
     kerosine_purchased_in_l = models.DecimalField(null=True, decimal_places=2, max_digits= 4)
 
 class Granary(models.Model):
-    granary_id = models.AutoField(primary_key=True,unique= True, null = False)
+    granary_id = models.AutoField(primary_key=True,unique= True, null = False, editable=False)
     location = models.CharField(max_length=50, null = False)
     sa= models.ManyToManyField('RationStore', through='StockAcquisition')
     Stock_sugar_in_kg = models.PositiveBigIntegerField(default=0, null=False)
     Stock_rice_in_kg = models.PositiveBigIntegerField(default=0, null=False)
     Stock_wheat_in_kg = models.PositiveBigIntegerField(default=0, null=False)
     Stock_kerosine_in_l = models.PositiveBigIntegerField(default=0, null=False)
+    def create_new_gid(self):
+      gid = str(random.randint(1000000000, 9999999999))
+      return str(gid)
+    
+    def save(self):
+        self.granary_id= self.create_new_gid()
+        try:
+            super().save()
+        except IntegrityError:
+            self.save() 
+
+class GranaryAdmin(admin.ModelAdmin):
+    readonly_fields=('granary_id',)
+
 
 class StockAcquisition(models.Model):
     store_id = models.ForeignKey(RationStore,on_delete=models.CASCADE)
