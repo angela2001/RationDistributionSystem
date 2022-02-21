@@ -6,8 +6,8 @@ class ManagementConfig(AppConfig):
     name = 'management'
 
 
-class DepConfig(AppConfig):
-    name = 'management'
+# class DepConfig(AppConfig):
+#     name = 'management'
 
-    def ready(self):
-        import management.signals   
+#     def ready(self):
+#         import management.signals   

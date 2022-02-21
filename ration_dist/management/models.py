@@ -5,8 +5,8 @@ from django.contrib import admin
 import random
 #   import string
 from django.utils.crypto import get_random_string
-
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 # Create your models here.
 
@@ -105,22 +105,23 @@ class RationCard(models.Model):
     #         self.create_obj()
 
     def save(self,):
-        self.card_no= self.create_new_ref_number()
+        if self.card_no == "0000000000":
+            self.card_no = self.create_new_ref_number()
         #self.no_of_dependants= self._no_of_dependants
         self.taluk_no = self._taluk_no
-        self.ward_no= self._ward_no
-        if self.eligible_for_AAY :
-            self.color=Quota.objects.get(color="Yellow") 
-        elif self.annual_income<24200:
-            self.color=Quota.objects.get(color="Pink")
-        elif self.annual_income>100000 and self.annual_income<300000:
-            self.color=Quota.objects.get(color="Blue")
-        elif self.annual_income>300000:
-            self.color=Quota.objects.get(color="White")
+        self.ward_no = self._ward_no
+        if self.eligible_for_AAY:
+            self.color = Quota.objects.get(color="Yellow")
+        elif self.annual_income < 24200:
+            self.color = Quota.objects.get(color="Pink")
+        elif self.annual_income > 100000 and self.annual_income < 300000:
+            self.color = Quota.objects.get(color="Blue")
+        elif self.annual_income > 300000:
+            self.color = Quota.objects.get(color="White")
         try:
             super().save()
         except IntegrityError:
-            self.save()    
+            self.save() 
     
     
 class RationCardAdmin(admin.ModelAdmin):
@@ -175,3 +176,18 @@ class StockAcquisition(models.Model):
     Stock_wheat_in_kg = models.PositiveBigIntegerField(default=0, null=False)
     Stock_kerosine_in_l = models.PositiveBigIntegerField(default=0, null=False)
     # def save
+
+
+# Signals
+
+def dependendents_post_save(sender, instance, created, *args, **kwargs):
+    if created:
+        try:
+            rc = RationCard.objects.get(card_no=instance.card.card_no)
+            rc.no_of_dependants += 1
+            rc.save()
+        except Exception as e:
+            print("Error " + str(e))
+
+
+post_save.connect(dependendents_post_save, sender=Dependent)
